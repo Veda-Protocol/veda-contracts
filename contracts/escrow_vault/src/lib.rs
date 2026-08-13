@@ -105,6 +105,7 @@ impl EscrowVault {
 #[cfg(test)]
 mod test {
     use super::*;
+    use soroban_sdk::token::StellarAssetClient;
     use soroban_sdk::{testutils::Address as _, Env};
 
     #[test]
@@ -119,5 +120,37 @@ mod test {
         let token = Address::generate(&env);
         let owner = Address::generate(&env);
         assert_eq!(client.locked_balance(&token, &owner), 0i128);
+    }
+
+    #[contract]
+    pub struct MockOwner;
+
+    #[contractimpl]
+    impl MockOwner {
+        pub fn noop(_env: Env) {}
+    }
+
+    #[test]
+    fn test_deposit_and_lock() {
+        let env = Env::default();
+        let contract_id = env.register(EscrowVault, ());
+        let client = EscrowVaultClient::new(&env, &contract_id);
+
+        let registry = Address::generate(&env);
+        client.initialize(&registry);
+
+        let admin = Address::generate(&env);
+        let token = env.register_stellar_asset_contract_v2(admin).address();
+        let owner = env.register(MockOwner, ());
+        let amount = 1_000i128;
+
+        env.mock_all_auths();
+
+        let sac = StellarAssetClient::new(&env, &token);
+        sac.mint(&owner, &amount);
+
+        let locked = client.deposit_and_lock(&token, &owner, &amount);
+        assert_eq!(locked, amount);
+        assert_eq!(client.locked_balance(&token, &owner), amount);
     }
 }

@@ -217,7 +217,7 @@ impl CoreRegistry {
 #[cfg(test)]
 mod test {
     use super::*;
-    use soroban_sdk::{testutils::Address as _, Env};
+    use soroban_sdk::{testutils::Address as _, BytesN, Env};
 
     #[test]
     fn test_create_and_fetch_job() {
@@ -236,5 +236,40 @@ mod test {
         assert_eq!(job.budget, budget);
         assert_eq!(job.client, client_addr);
         assert_eq!(job.status, JobStatus::Created);
+    }
+
+    #[contract]
+    pub struct MockVault;
+
+    #[contractimpl]
+    impl MockVault {
+        pub fn release_payment(_env: Env, _token: Address, _to: Address, _amount: i128) {}
+    }
+
+    #[test]
+    fn test_verify_and_settle() {
+        let env = Env::default();
+        let registry_id = env.register(CoreRegistry, ());
+        let client = CoreRegistryClient::new(&env, &registry_id);
+
+        let vault_id = env.register(MockVault, ());
+        let token = Address::generate(&env);
+        client.initialize(&vault_id, &token);
+
+        let client_addr = Address::generate(&env);
+        let solver = Address::generate(&env);
+        let job_id = symbol_short!("job2");
+        let budget = 2_000_000i128;
+        let proof_hash = BytesN::<32>::from_array(&env, &[0xABu8; 32]);
+
+        env.mock_all_auths();
+
+        client.create_job(&client_addr, &job_id, &budget);
+        client.assign_solver(&job_id, &solver);
+        client.verify_and_settle(&job_id, &proof_hash);
+
+        let job = client.get_job(&job_id);
+        assert_eq!(job.status, JobStatus::Settled);
+        assert_eq!(client.get_proof(&job_id), proof_hash);
     }
 }

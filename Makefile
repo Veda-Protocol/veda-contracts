@@ -9,7 +9,7 @@ build:
 
 # Run the Rust unit/integration tests.
 test:
-	cargo test --workspace
+	cargo test --all
 
 # Regenerate TypeScript bindings into the veda-sdk package.
 bindings:

@@ -55,12 +55,26 @@ Key entrypoints:
 Non-custodial bounty custody built on the Stellar Asset Contract (SAC).
 
 - `initialize(env, registry)` — only the configured `registry` may release funds.
-- `deposit_and_lock(env, token, from, amount)` — wraps the client's classic
-  asset into the vault via `StellarAssetClient::deposit` and records the locked
+- `deposit_and_lock(env, token, from, amount)` — pulls the client's asset into
+  the vault via `TokenClient::transfer` against the SAC and records the locked
   balance per owner.
 - `release_payment(env, token, to, amount)` — callable only by the registry;
-  transfers wrapped funds to the solver via `token::Client`.
+  transfers held funds to the solver via `TokenClient::transfer`.
 - `locked_balance(env, token, owner)` — read helper.
+
+## Staking & bounty rules
+
+- **Stake on registration.** `create_job` locks a positive `budget`; the bounty
+  is held in the `escrow_vault` until settlement.
+- **Custody.** Funds are pulled into the vault's Stellar Asset Contract (SAC)
+  balance via `deposit_and_lock`; the vault is non-custodial and only the
+  configured `registry` may release them.
+- **Release.** On a valid execution proof (`verify_and_settle`) the vault
+  releases the full `budget` to the assigned solver and the job is `Settled`.
+- **Slashing.** The client may call `slash` before settlement to penalize a
+  solver; a `Settled` job cannot be slashed.
+- **No partial payouts.** The entire locked budget is paid out on settlement;
+  there is no pro-rata or milestone-based release in this iteration.
 
 ## Verification lifecycle
 
@@ -89,7 +103,7 @@ rustup target add wasm32v1-none
 
 ```bash
 make build      # stellar contract build (wasm32v1-none)
-make test       # cargo test --workspace
+make test       # cargo test --all
 make bindings   # regenerate TypeScript bindings into veda-sdk
 make clean      # cargo clean && rm -rf target
 ```
