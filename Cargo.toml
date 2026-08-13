@@ -1,0 +1,31 @@
+[workspace]
+resolver = "2"
+members = [
+    "contracts/core_registry",
+    "contracts/escrow_vault",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.81"
+publish = false
+
+[workspace.dependencies]
+soroban-sdk = "22.0.0"
+
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = 0
+strip = "symbols"
+debug-assertions = false
+panic = "abort"
+codegen-units = 1
+lto = true
+
+[profile.release.build-override]
+opt-level = 3
+
+[profile.dev]
+opt-level = 0
