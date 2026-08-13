@@ -121,7 +121,7 @@ impl CoreRegistry {
         write_job(&env, &job);
 
         env.events().publish(
-            (symbol_short!("job_created"),),
+            (Symbol::new(&env, "job_created"),),
             (job_id, client, budget),
         );
     }
@@ -140,7 +140,7 @@ impl CoreRegistry {
         write_job(&env, &job);
 
         env.events()
-            .publish((symbol_short!("job_started"),), (job_id, solver));
+            .publish((Symbol::new(&env, "job_started"),), (job_id, solver));
     }
 
     /// Verify the solver's ZK execution proof and settle escrow to the solver.
@@ -166,7 +166,7 @@ impl CoreRegistry {
         write_job(&env, &job);
 
         env.events().publish(
-            (symbol_short!("job_verified"),),
+            (Symbol::new(&env, "job_verified"),),
             (job_id, proof_hash),
         );
 
@@ -192,7 +192,7 @@ impl CoreRegistry {
         write_job(&env, &job);
 
         env.events()
-            .publish((symbol_short!("job_slashed"),), (job_id,));
+            .publish((Symbol::new(&env, "job_slashed"),), (job_id,));
     }
 
     /// Read a job's current lifecycle status.
@@ -229,6 +229,7 @@ mod test {
         let job_id = symbol_short!("job1");
         let budget = 1_000_000i128;
 
+        env.mock_all_auths();
         client.create_job(&client_addr, &job_id, &budget);
 
         let job = client.get_job(&job_id);

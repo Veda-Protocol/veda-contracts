@@ -6,7 +6,7 @@
 //! Stellar Asset Contract) into the vault with `deposit_and_lock`, and the
 //! `CoreRegistry` releases those funds to Solvers with `release_payment`.
 
-use soroban_sdk::token::{self, StellarAssetClient};
+use soroban_sdk::token::TokenClient;
 use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, Symbol};
 
 /// Per-owner locked balance key.
@@ -58,9 +58,9 @@ impl EscrowVault {
             panic!("escrow_vault: amount must be positive");
         }
 
-        // Wrap the owner's classic asset into the vault's SAC balance.
-        let sac = StellarAssetClient::new(&env, &token);
-        sac.deposit(&from, &amount);
+        // Move the owner's asset into the vault's SAC balance.
+        let token_client = TokenClient::new(&env, &token);
+        token_client.transfer(&from, &env.current_contract_address(), &amount);
 
         let key = LockKey {
             token: token.clone(),
@@ -74,7 +74,7 @@ impl EscrowVault {
             .extend_ttl(&key, TTL_THRESHOLD, TTL_EXTEND_TO);
 
         env.events()
-            .publish((symbol_short!("escrow_locked"),), (token, from, amount));
+            .publish((Symbol::new(&env, "escrow_locked"),), (token, from, amount));
 
         locked
     }
@@ -89,11 +89,11 @@ impl EscrowVault {
         }
 
         // Move wrapped asset out of the vault to the recipient.
-        let token_client = token::Client::new(&env, &token);
+        let token_client = TokenClient::new(&env, &token);
         token_client.transfer(&env.current_contract_address(), &to, &amount);
 
         env.events()
-            .publish((symbol_short!("escrow_released"),), (token, to, amount));
+            .publish((Symbol::new(&env, "escrow_released"),), (token, to, amount));
     }
 
     /// Query a given owner's locked balance for a token.

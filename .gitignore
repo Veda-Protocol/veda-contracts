@@ -1,6 +1,6 @@
 /target
 **/target
-Cargo.lock
+**/test_snapshots/
 
 # Sibling repositories (each has its own git repo and is committed there)
 /veda-agent
